@@ -1,0 +1,8 @@
+{
+  "app1": {
+    "build": "west build -p always -b esp32_devkitc/esp32/procpu app/app1/",
+    "flash": "west flash --esp-baud-rate 921600",
+    "monitor": "west espressif monitor",
+    "run": "west build -p always -b esp32_devkitc/esp32/procpu app/app1/ && west flash --esp-baud-rate 921600"
+  }
+}
