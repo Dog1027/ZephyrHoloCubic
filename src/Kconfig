@@ -1,0 +1,46 @@
+config GUI_INIT_PRIORITY
+    int "GUI Initialization Priority"
+    default 91
+    range 0 99
+
+config GUI_LOG_LEVEL
+    int "GUI Log Level"
+    default 3
+    range 0 4
+    help
+      0: OFF, 1: ERROR, 2: WARNING, 3: INFO, 4: DEBUG
+
+config APP_MGR_INIT_PRIORITY
+    int "Application Manager Initialization Priority"
+    default 92
+    range 0 99
+
+config APP_MGR_LOG_LEVEL
+    int "Application Manager Log Level"
+    default 4
+    range 0 4
+    help
+      0: OFF, 1: ERROR, 2: WARNING, 3: INFO, 4: DEBUG
+
+config APP_THREAD_LOG_LEVEL
+    int "Application Thread Log Level"
+    default 4
+    range 0 4
+    help
+      0: OFF, 1: ERROR, 2: WARNING, 3: INFO, 4: DEBUG
+
+config APP_THREAD_SHOW_FPS
+    bool "Show FPS"
+    default n
+
+config APP_THREAD_ANIM_DURATION_MS
+    int "Application Thread Animation Duration (ms)"
+    default 300
+    range 0 5000
+
+config APP_THREAD_MAX_SLEEP_MS
+    int "Application Thread Maximum Sleep Time (ms)"
+    default 50
+    range 1 1000
+
+rsource "apps/Kconfig.apps"
