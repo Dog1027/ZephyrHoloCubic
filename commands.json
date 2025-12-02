@@ -1,5 +1,6 @@
 {
   "app1": {
+    "config": "west build -b esp32_devkitc/esp32/procpu -t menuconfig",
     "build": "west build -p always -b esp32_devkitc/esp32/procpu applications/app1/",
     "flash": "west flash --esp-baud-rate 921600",
     "monitor": "west espressif monitor",
