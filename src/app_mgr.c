@@ -34,10 +34,9 @@ int app_mgr_check(app_mgr_event_t *p_event, const void **p_data)
     }
     LOG_DBG("App manager semaphore taken");
 
-    ret = k_mutex_lock(&app_mgr_mutex, K_MSEC(100));
+    ret = k_mutex_lock(&app_mgr_mutex, K_NO_WAIT);
     if (ret < 0) {
         LOG_ERR("Failed to lock app manager mutex");
-        k_sem_give(&app_mgr_sem);
         return ret;
     }
 

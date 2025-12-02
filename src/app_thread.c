@@ -9,7 +9,7 @@ static void app_thread_entry(void *arg1, void *arg2, void *arg3);
 
 K_THREAD_DEFINE(
     app_thread,
-    0x1000,
+    0x2000,
     app_thread_entry,
     NULL, NULL, NULL,
     7,
@@ -80,13 +80,18 @@ static void app_thread_entry(void *arg1, void *arg2, void *arg3)
                 case APP_MGR_EVENT_APP_LOAD:
                     fg_app = (app_t *)data;
                     LOG_INF("Starting foreground application: %s", fg_app->name);
-                    lv_screen_load_anim(fg_scr, LV_SCR_LOAD_ANIM_FADE_IN, CONFIG_APP_THREAD_ANIM_DURATION_MS, 0, false);
+                    lv_obj_clean(fg_scr);
                     fg_app->init(fg_scr);
+                    lv_screen_load_anim(fg_scr, LV_SCR_LOAD_ANIM_FADE_IN, CONFIG_APP_THREAD_ANIM_DURATION_MS, 0, false);
                     break;
                 case APP_MGR_EVENT_APP_END:
+                    if (fg_app == NULL) {
+                        LOG_WRN("No foreground application to end");
+                        break;
+                    }
                     LOG_INF("Ending foreground application: %s", fg_app->name);
                     fg_app = NULL;
-                    lv_screen_load_anim(bg_scr, LV_SCR_LOAD_ANIM_FADE_OUT, CONFIG_APP_THREAD_ANIM_DURATION_MS, 0, true);
+                    lv_screen_load_anim(bg_scr, LV_SCR_LOAD_ANIM_FADE_OUT, CONFIG_APP_THREAD_ANIM_DURATION_MS, 0, false);
                     break;
                 default:
                     LOG_ERR("Unknown app manager event: %d, Exiting app thread", event);
