@@ -4,6 +4,7 @@
 #include <zephyr/device.h>
 #include <zephyr/logging/log.h>
 #include <lvgl.h>
+#include "input.h"
 
 LOG_MODULE_REGISTER(gui, CONFIG_GUI_LOG_LEVEL);
 
@@ -67,6 +68,30 @@ static int gui_hello_word(void)
     return 0;
 }
 
+static void _input_read(lv_indev_t * indev, lv_indev_data_t * data)
+{
+    char key = input_get();
+    if (key) {
+        data->key = key;
+        data->state = LV_INDEV_STATE_PRESSED;
+    } 
+    else {
+        data->state = LV_INDEV_STATE_RELEASED;
+    }
+}
+
+static int gui_input_init(void)
+{
+    lv_group_t * g = lv_group_create();
+    lv_group_set_default(g);
+
+    lv_indev_t * indev = lv_indev_create();
+    lv_indev_set_type(indev, LV_INDEV_TYPE_KEYPAD);
+    lv_indev_set_read_cb(indev, _input_read);
+    lv_indev_set_group(indev, g);
+    return 0;
+}
+
 static int gui_backlight_init(void)
 {
     const struct device *led_dev;
@@ -100,6 +125,7 @@ static int gui_init(void)
 
     int ret;
 
+    // video
     ret = gui_backlight_init();
     if (ret != 0) {
         LOG_ERR("Failed to initialize backlight");
@@ -115,6 +141,13 @@ static int gui_init(void)
     ret = display_blanking_off(display_dev);
     if (ret != 0) {
         LOG_ERR("Failed to turn on display");
+        return ret;
+    }
+
+    // input
+    ret = gui_input_init();
+    if (ret != 0) {
+        LOG_ERR("Failed to initialize input device");
         return ret;
     }
 

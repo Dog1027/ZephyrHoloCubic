@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <zephyr/shell/shell.h>
 #include "app_mgr.h"
+#include "input.h"
 
 static int _fg(const struct shell *shell, size_t argc, char **argv)
 {
@@ -43,11 +44,37 @@ static int _list(const struct shell *shell, size_t argc, char **argv)
     return 0;
 }
 
+static int _get_char(const struct shell *shell, size_t argc, char **argv)
+{
+    char key = input_get();
+    if (key == '\0') {
+        shell_print(shell, "No input available");
+    } else {
+        shell_print(shell, "Got input char: %c", key);
+    }
+    return 0;
+}
+
+static int _put_char(const struct shell *shell, size_t argc, char **argv)
+{
+    if (argc != 2) {
+        shell_print(shell, "Usage: tool putchar <char>");
+        return -EINVAL;
+    }
+
+    char key = argv[1][0];
+    input_put(key);
+    shell_print(shell, "Put input char: %c", key);
+    return 0;
+}
+
 /* Define shell subcommands */
 SHELL_STATIC_SUBCMD_SET_CREATE(sub_tool,
     SHELL_CMD_ARG(fg, NULL, "fg", _fg, 2, 0),
     SHELL_CMD_ARG(end_fg, NULL, "end_fg", _end_fg, 1, 0),
     SHELL_CMD_ARG(list, NULL, "list", _list, 1, 0),
+    SHELL_CMD_ARG(getchar, NULL, "get char", _get_char, 1, 0),
+    SHELL_CMD_ARG(putchar, NULL, "put char", _put_char, 2, 0),
     SHELL_SUBCMD_SET_END);
 
 /* Register main shell command */

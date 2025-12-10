@@ -18,4 +18,5 @@ target_sources(app PRIVATE
   src/app_list.c
   src/app_thread.c
   src/file.c
+  src/input.c
 )
