@@ -3,14 +3,16 @@
 typedef struct {
     int prio;
     const char *name;
-    void (*init)(void *src);
-    void (*run)(void *src);
+    void (*init)(void *scr);
+    void (*run)(void *scr);
 } app_t;
 
 #define APP_INST_CREATE(_inst, _name, _init, _run, _prio) \
+    static void _init(void *); \
+    static void _run(void *); \
     static const app_t _inst = { \
         .prio = _prio , \
-        .name = _name, \
+        .name = #_name, \
         .init = (void (*)(void *))_init, \
         .run = (void (*)(void *))_run, \
     }
