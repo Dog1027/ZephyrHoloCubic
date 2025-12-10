@@ -2,6 +2,7 @@
 #include <zephyr/shell/shell.h>
 #include "app_mgr.h"
 #include "input.h"
+#include <lvgl.h>
 
 static int _fg(const struct shell *shell, size_t argc, char **argv)
 {
@@ -68,6 +69,21 @@ static int _put_char(const struct shell *shell, size_t argc, char **argv)
     return 0;
 }
 
+static int _next(const struct shell *shell, size_t argc, char **argv)
+{
+    lv_group_t *main_group = lv_group_get_default();
+    lv_group_focus_next(main_group);
+    return 0;
+}
+
+static int _prev(const struct shell *shell, size_t argc, char **argv)
+{
+    lv_group_t *main_group = lv_group_get_default();
+    lv_group_focus_prev(main_group);
+    return 0;
+}
+
+
 /* Define shell subcommands */
 SHELL_STATIC_SUBCMD_SET_CREATE(sub_tool,
     SHELL_CMD_ARG(fg, NULL, "fg", _fg, 2, 0),
@@ -75,6 +91,8 @@ SHELL_STATIC_SUBCMD_SET_CREATE(sub_tool,
     SHELL_CMD_ARG(list, NULL, "list", _list, 1, 0),
     SHELL_CMD_ARG(getchar, NULL, "get char", _get_char, 1, 0),
     SHELL_CMD_ARG(putchar, NULL, "put char", _put_char, 2, 0),
+    SHELL_CMD_ARG(next, NULL, "next", _next, 1, 0),
+    SHELL_CMD_ARG(prev, NULL, "prev", _prev, 1, 0),
     SHELL_SUBCMD_SET_END);
 
 /* Register main shell command */
