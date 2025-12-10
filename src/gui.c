@@ -13,7 +13,7 @@ static void _test_1(void)
     /* Configure screen and background for transparency */
     // lv_obj_set_style_bg_opa(lv_screen_active(), LV_OPA_TRANSP, LV_PART_MAIN);
     // lv_obj_set_style_bg_opa(lv_layer_bottom(), LV_OPA_TRANSP, LV_PART_MAIN);
-    
+
     lv_obj_t *scr = lv_scr_act();
     if (!scr) {
         LOG_ERR("Failed to get active screen");
@@ -41,9 +41,8 @@ static void _test_1(void)
     lv_obj_set_style_text_color(label, lv_color_hex(0x0000ff), LV_PART_MAIN);
     lv_obj_align(label, LV_ALIGN_CENTER, 70, 20);
 
-    
     /*Create an array for the points of the line*/
-    static lv_point_precise_t line_points[] = { {0, 0}, {238, 0}, {238, 238}, {0, 238}, {0, 0} };
+    static lv_point_precise_t line_points[] = { { 0, 0 }, { 238, 0 }, { 238, 238 }, { 0, 238 }, { 0, 0 } };
 
     /*Create style*/
     static lv_style_t style_line;
@@ -53,9 +52,9 @@ static void _test_1(void)
     lv_style_set_line_rounded(&style_line, true);
 
     /*Create a line and apply the new style*/
-    lv_obj_t * line1;
+    lv_obj_t *line1;
     line1 = lv_line_create(scr);
-    lv_line_set_points(line1, line_points, 5);     /*Set the points*/
+    lv_line_set_points(line1, line_points, 5); /*Set the points*/
     lv_obj_add_style(line1, &style_line, 0);
     lv_obj_center(line1);
 }
@@ -90,7 +89,7 @@ static int gui_backlight_init(void)
 
 static int gui_init(void)
 {
-    
+
     const struct device *display_dev;
 
     display_dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_display));
@@ -98,7 +97,7 @@ static int gui_init(void)
         LOG_ERR("Device not ready");
         return 0;
     }
-    
+
     int ret;
 
     ret = gui_backlight_init();
@@ -112,7 +111,7 @@ static int gui_init(void)
         LOG_ERR("Failed to initialize GUI library");
         return ret;
     }
-    
+
     ret = display_blanking_off(display_dev);
     if (ret != 0) {
         LOG_ERR("Failed to turn on display");
@@ -124,4 +123,3 @@ static int gui_init(void)
 }
 
 SYS_INIT(gui_init, APPLICATION, CONFIG_GUI_INIT_PRIORITY);
-

@@ -1,0 +1,12 @@
+{
+    BasedOnStyle: WebKit,
+    IndentWidth: 4,
+    UseTab: Never,
+    DerivePointerAlignment: false,
+    SortIncludes: false,
+    BreakBeforeBraces: Custom,
+    BraceWrapping: {
+        BeforeElse: true,
+        AfterFunction: true,
+    },
+}
