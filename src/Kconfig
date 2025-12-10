@@ -43,4 +43,9 @@ config APP_THREAD_MAX_SLEEP_MS
     default 50
     range 1 1000
 
+config FILE_INIT_PRIORITY
+    int "File System Initialization Priority"
+    default 90
+    range 0 99
+
 rsource "apps/Kconfig.apps"
