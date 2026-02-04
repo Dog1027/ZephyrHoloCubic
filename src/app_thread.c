@@ -1,6 +1,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include "app_mgr.h"
+#include "input.h"
 #include <lvgl.h>
 
 LOG_MODULE_REGISTER(app_thread, CONFIG_APP_THREAD_LOG_LEVEL);
@@ -33,6 +34,16 @@ static int _draw_fps(uint32_t sleep_ms)
     return 0;
 }
 #endif
+
+static void lv_group_focus_index(int index) {
+    lv_group_t *g = lv_group_get_default();
+    if (g == NULL) return;
+
+    lv_obj_t *obj = lv_group_get_obj_by_index(g, index);
+    LOG_INF("Focusing object index: %d", index);
+
+    lv_group_focus_obj(obj);
+}
 
 static void app_thread_entry(void *arg1, void *arg2, void *arg3)
 {
@@ -102,7 +113,7 @@ static void app_thread_entry(void *arg1, void *arg2, void *arg3)
     #if IS_ENABLED(CONFIG_APP_THREAD_SHOW_FPS)
         _draw_fps(sleep_ms);
     #endif
-
+        input_focus(lv_group_get_obj_count(lv_group_get_default()), lv_group_focus_index);
         sleep_ms = lv_timer_handler();
         if (sleep_ms == LV_NO_TIMER_READY) {
             sleep_ms = CONFIG_APP_THREAD_MAX_SLEEP_MS;
