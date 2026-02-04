@@ -68,13 +68,12 @@ static int gui_hello_word(void)
     return 0;
 }
 
-static void _input_read(lv_indev_t * indev, lv_indev_data_t * data)
-{
-    char key = input_get();
-    if (key) {
-        data->key = key;
+static void encoder_read(lv_indev_t * indev, lv_indev_data_t * data){
+    // data->enc_diff = 1;// enc_get_new_moves();  /* Negative for left, positive for right turns, 0 for no change */
+
+    if (input_press()) {
         data->state = LV_INDEV_STATE_PRESSED;
-    } 
+    }
     else {
         data->state = LV_INDEV_STATE_RELEASED;
     }
@@ -82,12 +81,12 @@ static void _input_read(lv_indev_t * indev, lv_indev_data_t * data)
 
 static int gui_input_init(void)
 {
-    lv_group_t * g = lv_group_create();
+    lv_group_t *g = lv_group_create();
     lv_group_set_default(g);
 
-    lv_indev_t * indev = lv_indev_create();
-    lv_indev_set_type(indev, LV_INDEV_TYPE_KEYPAD);
-    lv_indev_set_read_cb(indev, _input_read);
+    lv_indev_t *indev = lv_indev_create();
+    lv_indev_set_type(indev, LV_INDEV_TYPE_ENCODER);
+    lv_indev_set_read_cb(indev, encoder_read);
     lv_indev_set_group(indev, g);
     return 0;
 }
