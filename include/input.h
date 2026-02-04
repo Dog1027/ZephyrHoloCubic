@@ -1,4 +1,4 @@
 #pragma once
 
-char input_get();
-void input_put(char key);
+char input_press(void);
+char input_focus(int obj_count, void (*focus)(int obj_index));

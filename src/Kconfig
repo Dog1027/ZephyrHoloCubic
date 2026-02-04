@@ -48,4 +48,11 @@ config FILE_INIT_PRIORITY
     default 90
     range 0 99
 
+config INPUT_LOG_LEVEL
+    int "Input Log Level"
+    default 3
+    range 0 4
+    help
+      0: OFF, 1: ERROR, 2: WARNING, 3: INFO, 4: DEBUG
+
 rsource "apps/Kconfig.apps"

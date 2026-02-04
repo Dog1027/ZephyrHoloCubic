@@ -1,4 +1,6 @@
 // #include <zephyr/dt-bindings/mipi_dbi/mipi_dbi.h>
+#include <zephyr/dt-bindings/led/led.h>
+#include <zephyr/dt-bindings/led/worldsemi_ws2812c.h>
 
 / {
     chosen {
@@ -60,31 +62,45 @@
     };
 };
 
-&pinctrl {
-    /omit-if-no-ref/ spim2_default: spim2_default {
-        group1 {
-            pinmux = <SPIM2_MISO_GPIO26>,
-                <SPIM2_SCLK_GPIO14>,
-                <SPIM2_CSEL_GPIO15>;
-        };
-
-        group2 {
-            pinmux = <SPIM2_MOSI_GPIO13>;
-            output-low;
-        };
+&spim2_default {
+    group1 {
+        pinmux = <SPIM2_MISO_GPIO26>,
+            <SPIM2_SCLK_GPIO14>,
+            <SPIM2_CSEL_GPIO15>;
     };
 
-    /omit-if-no-ref/ spim3_default: spim3_default {
-        group1 {
-            pinmux = <SPIM3_MISO_GPIO9>,
-                <SPIM3_SCLK_GPIO18>,
-                <0>;
-        };
+    group2 {
+        pinmux = <SPIM2_MOSI_GPIO13>;
+        output-low;
+    };
+};
 
-        group2 {
-            pinmux = <SPIM3_MOSI_GPIO23>;
-            output-low;
-        };
+&spim3_default {
+    group1 {
+        pinmux = <SPIM3_MISO_GPIO9>,
+            <SPIM3_SCLK_GPIO18>,
+            <0>;
+    };
+
+    group2 {
+        pinmux = <SPIM3_MOSI_GPIO23>;
+        output-low;
+    };
+};
+
+&i2c0_default {
+    group1 {
+        pinmux = <I2C0_SDA_GPIO32>,
+            <I2C0_SCL_GPIO33>;
+        // bias-pull-up;
+        drive-open-drain;
+        output-high;
+    };
+};
+
+&i2s0_default {
+    group1 {
+        pinmux = <I2S0_O_SD_GPIO27>;
     };
 };
 
@@ -99,5 +115,31 @@
             disk-name = "SD";
             status = "okay";
         };
+    };
+};
+
+&i2c0 {
+    sda-gpios = <&gpio0 32 GPIO_OPEN_DRAIN>;
+    scl-gpios = <&gpio0 33 GPIO_OPEN_DRAIN>;
+
+    imu: mpu6050@68 {
+        compatible = "invensense,mpu6050";
+        reg = <0x68>;
+        status = "okay";
+    };
+};
+
+&i2s0 {
+    status = "okay";
+
+    rgb_led: ws2812@0 {
+        compatible = "worldsemi,ws2812-i2s";
+        reg = <0>;
+
+        chain-length = <1>;
+        color-mapping = <LED_COLOR_ID_GREEN
+                LED_COLOR_ID_RED
+                LED_COLOR_ID_BLUE>;
+        reset-delay = <500>;
     };
 };
