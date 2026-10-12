@@ -25,7 +25,16 @@ K_THREAD_DEFINE(
 K_MUTEX_DEFINE(input_mutex);
 
 static const struct device *imu_dev = DEVICE_DT_GET_OR_NULL(DT_NODELABEL(imu));
-static float roll_angle = 0.0f;
+static input_angle_t current_angle = {0.0f, 0.0f, 0.0f};
+
+
+char input_get(input_angle_t *angle)
+{
+    k_mutex_lock(&input_mutex, K_FOREVER);
+    angle->roll = current_angle.roll;
+    k_mutex_unlock(&input_mutex);
+    return 0;
+}
 
 char input_press(void)
 {
@@ -41,7 +50,7 @@ char input_focus(int obj_count, void (*focus)(int obj_index))
     float sector_size = total_range / obj_count;
 
     k_mutex_lock(&input_mutex, K_FOREVER);
-    int target_index = (int)((roll_angle + 90 - (180 - total_range) / 2) / sector_size);
+    int target_index = (int)((current_angle.roll + 90 - (180 - total_range) / 2) / sector_size);
     k_mutex_unlock(&input_mutex);
     
     if (target_index < 0) target_index = 0;
@@ -81,7 +90,7 @@ void input_thread_entry(void *arg1, void *arg2, void *arg3)
         float gx = (float)sensor_value_to_double(&gyro[0]);
         
         float accel_roll = atan2f(ay, az) * RAD_TO_DEG;
-        roll_angle = accel_roll;
+        current_angle.roll = accel_roll;
     }
 
     while (1) {
@@ -117,11 +126,11 @@ void input_thread_entry(void *arg1, void *arg2, void *arg3)
 
 
         k_mutex_lock(&input_mutex, K_FOREVER);
-        roll_angle = ALPHA * (roll_angle + gx_deg * (SAMPLING_PERIOD_MS / 1000.0f)) + (1.0f - ALPHA) * accel_roll;
+        current_angle.roll = ALPHA * (current_angle.roll + gx_deg * (SAMPLING_PERIOD_MS / 1000.0f)) + (1.0f - ALPHA) * accel_roll;
         k_mutex_unlock(&input_mutex);
 
-        // int roll_int = (int)(roll_angle);
-        // int roll_frac = (int)(fabsf(roll_angle - roll_int) * 100.0f); // 小數部分
+        // int roll_int = (int)(current_angle.roll);
+        // int roll_frac = (int)(fabsf(current_angle.roll - roll_int) * 100.0f); // 小數部分
         // LOG_INF("Roll Angle: %d.%02d deg", roll_int, roll_frac);
 
         k_msleep(SAMPLING_PERIOD_MS);

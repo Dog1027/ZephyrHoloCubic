@@ -3,14 +3,13 @@
 #include <ff.h>
 
 #define MKFS_FS_TYPE FS_FATFS
-#define MKFS_DEV_ID "RAM:"
-#define MKFS_FLAGS 0
 
 static FATFS sd_fatfs;
 static struct fs_mount_t sd_mnt = {
     .type = FS_FATFS,
-    .mnt_point = "/SD:",
+    .mnt_point = "/0:",
     .fs_data = &sd_fatfs,
+    .storage_dev = (void *)"SD",
 };
 
 static int lsdir(const char* path)
@@ -67,7 +66,9 @@ static int file_init(void)
         return rc;
     }
 
-    rc = lsdir("/SD:");
+    printk("SD card mounted at %s\n", sd_mnt.mnt_point);
+
+    rc = lsdir("/0:");
     if (rc < 0) {
         printk("Failed to list directory (%d)\n", rc);
         return rc;
