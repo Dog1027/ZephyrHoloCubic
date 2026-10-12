@@ -40,7 +40,7 @@ static void lv_group_focus_index(int index) {
     if (g == NULL) return;
 
     lv_obj_t *obj = lv_group_get_obj_by_index(g, index);
-    LOG_INF("Focusing object index: %d", index);
+    LOG_DBG("Focusing object index: %d", index);
 
     lv_group_focus_obj(obj);
 }

@@ -56,10 +56,9 @@ char input_focus(int obj_count, void (*focus)(int obj_index))
     if (target_index < 0) target_index = 0;
     if (target_index >= obj_count) target_index = obj_count - 1;
 
-    LOG_INF("Target Index: %d, n: %d", target_index, obj_count);
-
     static int last_target_index = -1;
     if (target_index != last_target_index) {
+        LOG_DBG("Target Index: %d, n: %d", target_index, obj_count);
         last_target_index = target_index;
         focus(target_index);
         
