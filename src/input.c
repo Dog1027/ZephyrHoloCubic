@@ -2,19 +2,23 @@
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/logging/log.h>
 #include <math.h>
+#include <string.h>
 #include "input.h"
+#include "nav.h"
 
 LOG_MODULE_REGISTER(input, CONFIG_INPUT_LOG_LEVEL);
 
 #define ALPHA 0.98f        // 濾波係數
 #define SAMPLING_PERIOD_MS 10  // 取樣週期 (毫秒)
 #define RAD_TO_DEG 57.29578f // 弧度轉角度係數
+#define TAP_THRESHOLD 8.0f   // 敲擊判定：相鄰兩次取樣的加速度變化量 (m/s^2)
+#define TAP_COOLDOWN_MS 300  // 敲擊後的冷卻時間，避免一次敲擊觸發多次
 
 static void input_thread_entry(void *arg1, void *arg2, void *arg3);
 
 K_THREAD_DEFINE(
     input_thread,
-    0x2000,
+    CONFIG_INPUT_THREAD_STACK_SIZE,
     input_thread_entry,
     NULL, NULL, NULL,
     7,
@@ -28,51 +32,83 @@ static const struct device *imu_dev = DEVICE_DT_GET_OR_NULL(DT_NODELABEL(imu));
 static input_angle_t current_angle = {0.0f, 0.0f, 0.0f};
 
 
+// 對外提供的角度，依螢幕鏡像 / IMU 安裝方向修正正負號 (內部濾波一律用感測器原始方向)
+static input_angle_t angle_out(void)
+{
+    k_mutex_lock(&input_mutex, K_FOREVER);
+    input_angle_t angle = current_angle;
+    k_mutex_unlock(&input_mutex);
+
+    if (IS_ENABLED(CONFIG_INPUT_ROLL_INVERT)) {
+        angle.roll = -angle.roll;
+    }
+    if (IS_ENABLED(CONFIG_INPUT_PITCH_INVERT)) {
+        angle.pitch = -angle.pitch;
+    }
+    return angle;
+}
+
 char input_get(input_angle_t *angle)
 {
-    k_mutex_lock(&input_mutex, K_FOREVER);
-    angle->roll = current_angle.roll;
-    k_mutex_unlock(&input_mutex);
+    *angle = angle_out();
     return 0;
 }
 
-char input_press(void)
+static int imu_read(float accel[3], float gyro[3])
 {
-    return 0;
-}
+    struct sensor_value a[3];
+    struct sensor_value g[3];
 
-char input_focus(int obj_count, void (*focus)(int obj_index))
-{
-    if (obj_count == 0) return -1;
-
-    // 定義總範圍 (150度)
-    const float total_range = 100.0f;
-    float sector_size = total_range / obj_count;
-
-    k_mutex_lock(&input_mutex, K_FOREVER);
-    int target_index = (int)((current_angle.roll + 90 - (180 - total_range) / 2) / sector_size);
-    k_mutex_unlock(&input_mutex);
-    
-    if (target_index < 0) target_index = 0;
-    if (target_index >= obj_count) target_index = obj_count - 1;
-
-    static int last_target_index = -1;
-    if (target_index != last_target_index) {
-        LOG_DBG("Target Index: %d, n: %d", target_index, obj_count);
-        last_target_index = target_index;
-        focus(target_index);
-        
-        // 可選：觸發一個短震動
-        // trigger_haptic_feedback(); 
+    if (sensor_sample_fetch(imu_dev) < 0) {
+        LOG_ERR("Failed to fetch sample from IMU");
+        return -EIO;
     }
 
+    if (sensor_channel_get(imu_dev, SENSOR_CHAN_ACCEL_XYZ, a) < 0) {
+        LOG_ERR("Failed to get accel data from IMU");
+        return -EIO;
+    }
+
+    if (sensor_channel_get(imu_dev, SENSOR_CHAN_GYRO_XYZ, g) < 0) {
+        LOG_ERR("Failed to get gyro data from IMU");
+        return -EIO;
+    }
+
+    for (int i = 0; i < 3; i++) {
+        accel[i] = (float)sensor_value_to_double(&a[i]); // m/s^2
+        gyro[i] = (float)sensor_value_to_double(&g[i]);  // rad/s
+    }
     return 0;
+}
+
+// 換算到 [-180, 180]
+static float wrap180(float deg)
+{
+    while (deg > 180.0f) {
+        deg -= 360.0f;
+    }
+    while (deg < -180.0f) {
+        deg += 360.0f;
+    }
+    return deg;
+}
+
+// 由加速度計 (重力方向) 計算的「絕對角度」(參考值)
+static void accel_angle(const float accel[3], float *roll, float *pitch)
+{
+    *roll = atan2f(accel[1], accel[2]) * RAD_TO_DEG;
+    *pitch = atan2f(-accel[0], sqrtf(accel[1] * accel[1] + accel[2] * accel[2])) * RAD_TO_DEG;
 }
 
 void input_thread_entry(void *arg1, void *arg2, void *arg3)
 {
-    struct sensor_value accel[3];
-    struct sensor_value gyro[3];
+    float accel[3];
+    float gyro[3];
+    float prev_accel[3];
+    float accel_roll;
+    float accel_pitch;
+    int64_t tap_cooldown_end = 0;
+    const float dt = SAMPLING_PERIOD_MS / 1000.0f;
 
     if (imu_dev == NULL || !device_is_ready(imu_dev)) {
         LOG_ERR("IMU device not ready");
@@ -81,58 +117,50 @@ void input_thread_entry(void *arg1, void *arg2, void *arg3)
         }
     }
 
-    if (sensor_sample_fetch(imu_dev) == 0 &&
-        sensor_channel_get(imu_dev, SENSOR_CHAN_ACCEL_XYZ, accel) == 0 &&
-        sensor_channel_get(imu_dev, SENSOR_CHAN_GYRO_XYZ, gyro) == 0) {
-        float ay = (float)sensor_value_to_double(&accel[1]);
-        float az = (float)sensor_value_to_double(&accel[2]);
-        float gx = (float)sensor_value_to_double(&gyro[0]);
-        
-        float accel_roll = atan2f(ay, az) * RAD_TO_DEG;
-        current_angle.roll = accel_roll;
+    while (imu_read(accel, gyro) < 0) {
+        k_msleep(SAMPLING_PERIOD_MS);
     }
+    accel_angle(accel, &accel_roll, &accel_pitch);
+    current_angle.roll = accel_roll;
+    current_angle.pitch = accel_pitch;
+    memcpy(prev_accel, accel, sizeof(accel));
 
     while (1) {
-        if (sensor_sample_fetch(imu_dev) < 0) {
-            LOG_ERR("Failed to fetch sample from IMU");
-            k_msleep(SAMPLING_PERIOD_MS);
+        k_msleep(SAMPLING_PERIOD_MS);
+
+        if (imu_read(accel, gyro) < 0) {
             continue;
         }
 
-        if (sensor_channel_get(imu_dev, SENSOR_CHAN_ACCEL_XYZ, accel) < 0) {
-            LOG_ERR("Failed to get accel data from IMU");
-            k_msleep(SAMPLING_PERIOD_MS);
-            continue;
+        // 敲擊偵測：加速度在一次取樣內劇烈變化 (傾斜這類慢動作變化很小)
+        float dx = accel[0] - prev_accel[0];
+        float dy = accel[1] - prev_accel[1];
+        float dz = accel[2] - prev_accel[2];
+        float jerk = sqrtf(dx * dx + dy * dy + dz * dz);
+        memcpy(prev_accel, accel, sizeof(accel));
+
+        bool spike = jerk > TAP_THRESHOLD;
+        int64_t now = k_uptime_get();
+        if (spike && now >= tap_cooldown_end) {
+            tap_cooldown_end = now + TAP_COOLDOWN_MS;
+            // 敲一下當成一個導航指令，預設等於「下一個」，app 可以自己接手 (例如 Dice 擲骰)
+            nav_send(NAV_TAP);
+            LOG_DBG("Tap detected, jerk: %d m/s^2", (int)jerk);
         }
 
-        if (sensor_channel_get(imu_dev, SENSOR_CHAN_GYRO_XYZ, gyro) < 0) {
-            LOG_ERR("Failed to get gyro data from IMU");
-            k_msleep(SAMPLING_PERIOD_MS);
-            continue;
-        }
-
-        float ax = (float)sensor_value_to_double(&accel[0]);
-        float ay = (float)sensor_value_to_double(&accel[1]);
-        float az = (float)sensor_value_to_double(&accel[2]);
-        float gx = (float)sensor_value_to_double(&gyro[0]); // 繞 X 軸角速度 (rad/s)
-
-        // 計算加速度計提供的「絕對角度」(參考值)
-        float accel_roll = atan2f(ay, az) * RAD_TO_DEG;
+        accel_angle(accel, &accel_roll, &accel_pitch);
 
         // 互補濾波：融合陀螺儀積分與加速度計角度
-        // 注意：Zephyr 讀出的陀螺儀單位通常是 rad/s，要轉成 deg/s
-        float gx_deg = gx * RAD_TO_DEG;
-
+        // 敲擊時的加速度尖峰不代表重力方向，這段期間只用陀螺儀
+        float k = spike ? 1.0f : ALPHA;
 
         k_mutex_lock(&input_mutex, K_FOREVER);
-        current_angle.roll = ALPHA * (current_angle.roll + gx_deg * (SAMPLING_PERIOD_MS / 1000.0f)) + (1.0f - ALPHA) * accel_roll;
+        // roll 在 ±180 度 (螢幕朝下) 會跳號，用角度差融合，不能直接平均 +179 和 -179
+        float roll_pred = current_angle.roll + gyro[0] * RAD_TO_DEG * dt;
+        current_angle.roll = wrap180(roll_pred + (1.0f - k) * wrap180(accel_roll - roll_pred));
+        current_angle.pitch = k * (current_angle.pitch + gyro[1] * RAD_TO_DEG * dt) + (1.0f - k) * accel_pitch;
         k_mutex_unlock(&input_mutex);
 
-        // int roll_int = (int)(current_angle.roll);
-        // int roll_frac = (int)(fabsf(current_angle.roll - roll_int) * 100.0f); // 小數部分
-        // LOG_INF("Roll Angle: %d.%02d deg", roll_int, roll_frac);
-
-        k_msleep(SAMPLING_PERIOD_MS);
     }
 }
 

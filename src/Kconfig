@@ -17,17 +17,24 @@ config APP_MGR_INIT_PRIORITY
 
 config APP_MGR_LOG_LEVEL
     int "Application Manager Log Level"
-    default 4
+    default 3
     range 0 4
     help
       0: OFF, 1: ERROR, 2: WARNING, 3: INFO, 4: DEBUG
 
 config APP_THREAD_LOG_LEVEL
     int "Application Thread Log Level"
-    default 4
+    default 3
     range 0 4
     help
       0: OFF, 1: ERROR, 2: WARNING, 3: INFO, 4: DEBUG
+
+config APP_THREAD_STACK_SIZE
+    int "Application Thread Stack Size"
+    default 8192
+    help
+      LVGL rendering, the apps and JPEG decoding run on this thread.
+      Check the real usage in the SysInfo app before shrinking it.
 
 config APP_THREAD_SHOW_FPS
     bool "Show FPS"
@@ -47,6 +54,25 @@ config FILE_INIT_PRIORITY
     int "File System Initialization Priority"
     default 90
     range 0 99
+
+config INPUT_THREAD_STACK_SIZE
+    int "Input Thread Stack Size"
+    default 8192
+    help
+      Reads the IMU every 10 ms. Check the real usage in the SysInfo app before shrinking it.
+
+config INPUT_ROLL_INVERT
+    bool "Invert left/right tilt"
+    help
+      Flip the sign of roll for everything that reads it (highlight, Level, Photos).
+      Enable if tilting moves the highlight the wrong way on screen, e.g. after
+      changing the display mirroring (mdac in app.overlay) or the IMU mounting.
+
+config INPUT_PITCH_INVERT
+    bool "Invert forward/backward tilt"
+    help
+      Flip the sign of pitch for everything that reads it (Level bubble, back gesture
+      is not affected since it uses both directions).
 
 config INPUT_LOG_LEVEL
     int "Input Log Level"

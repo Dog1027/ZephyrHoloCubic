@@ -34,7 +34,15 @@
             gctrl = <0x35>;
             vrhs = <0x12>;
             vdvs = <0x20>;
-            mdac = <0x00>;
+            /*
+             * MADCTL: mirrored for viewing through the beam-splitter cube.
+             * 0x40 = MX, left-right mirror (no offset needed).
+             * If the image looks upside down instead, use 0x80 (MY, top-bottom mirror)
+             * and set y-offset = <80>: the controller has 320 rows, the 240x240 panel
+             * only shows 240 of them.
+             * 0x00 = normal, for looking at the screen directly.
+             */
+            mdac = <0x40>;
             gamma = <0x01>;
             colmod = <0x05>;
             lcm = <0x2c>;
@@ -105,9 +113,12 @@
 };
 
 &spi2 {
+    // No dma-enabled here: both SPI buses share one DMA clock and the Zephyr driver fails
+    // ("Could not enable DMA clock") on the second bus that enables it. The display needs it more.
     sdhc_spi: sdhc_spi@0 {
         compatible = "zephyr,sdhc-spi-slot";
         reg = <0>;
+        // MISO is on GPIO26 (through the GPIO matrix), reads above 20 MHz fail
         spi-max-frequency = <20000000>;
         status = "okay";
         mmc {
@@ -119,6 +130,9 @@
 };
 
 &i2c0 {
+    // 400 kHz (I2C_BITRATE_FAST) made the MPU6050 fail to init: the pins rely on external
+    // pull-ups (bias-pull-up is off) and they are too weak for fast mode. Stay at 100 kHz.
+    clock-frequency = <I2C_BITRATE_STANDARD>;
     sda-gpios = <&gpio0 32 GPIO_OPEN_DRAIN>;
     scl-gpios = <&gpio0 33 GPIO_OPEN_DRAIN>;
 
@@ -142,4 +156,10 @@
                 LED_COLOR_ID_BLUE>;
         reset-delay = <500>;
     };
+};
+
+&spi3 {
+    // Display bus: DMA lets a whole row go out in one transfer instead of 64-byte chunks.
+    // Only one bus may have DMA, see &spi2.
+    dma-enabled;
 };

@@ -5,50 +5,45 @@
 
 LOG_MODULE_REGISTER(app_mgr, CONFIG_APP_MGR_LOG_LEVEL);
 
+#define APP_MGR_QUEUE_LEN 4
+
 typedef struct {
     app_mgr_event_t event;
     const void *data;
 } app_mgr_t;
 
-static struct k_mutex app_mgr_mutex;
-static struct k_sem app_mgr_sem;
+// 佇列：連續送出的事件 (例如換 app 後馬上結束) 會依序處理，不會互相覆蓋
+K_MSGQ_DEFINE(app_mgr_q, sizeof(app_mgr_t), APP_MGR_QUEUE_LEN, 4);
 
-static app_mgr_t _app_mgr_inst = {
-    .event = APP_MGR_EVENT_NONE,
-    .data = NULL,
-};
+static int app_mgr_send(app_mgr_event_t event, const void *data)
+{
+    app_mgr_t msg = {
+        .event = event,
+        .data = data,
+    };
 
-static app_mgr_t *const _app_mgr = &_app_mgr_inst;
+    int ret = k_msgq_put(&app_mgr_q, &msg, K_NO_WAIT);
+    if (ret < 0) {
+        LOG_ERR("App manager queue full, event %d dropped", event);
+    }
+    return ret;
+}
 
 int app_mgr_check(app_mgr_event_t *p_event, const void **p_data)
 {
-    int ret;
+    app_mgr_t msg;
 
     if (p_event == NULL || p_data == NULL) {
         return -EINVAL;
     }
 
-    ret = k_sem_take(&app_mgr_sem, K_NO_WAIT);
+    int ret = k_msgq_get(&app_mgr_q, &msg, K_NO_WAIT);
     if (ret < 0) {
         return ret;
     }
-    LOG_DBG("App manager semaphore taken");
 
-    ret = k_mutex_lock(&app_mgr_mutex, K_NO_WAIT);
-    if (ret < 0) {
-        LOG_ERR("Failed to lock app manager mutex");
-        return ret;
-    }
-
-    *p_event = _app_mgr->event;
-    *p_data = _app_mgr->data;
-    
-    ret = k_mutex_unlock(&app_mgr_mutex);
-    if (ret < 0) {
-        LOG_ERR("Failed to unlock app manager mutex");
-        return ret;
-    }
-
+    *p_event = msg.event;
+    *p_data = msg.data;
     LOG_DBG("App manager event checked: %d", *p_event);
     return 0;
 }
@@ -61,66 +56,25 @@ int app_mgr_load_app(int index)
         return -ENOENT;
     }
 
-    int ret;
-    ret = k_mutex_lock(&app_mgr_mutex, K_FOREVER);
-    if (ret < 0) {
-        LOG_ERR("Failed to lock app manager mutex");
-        return ret;
+    int ret = app_mgr_send(APP_MGR_EVENT_APP_LOAD, app);
+    if (ret == 0) {
+        LOG_DBG("Loaded application: %s", app->name);
     }
-
-    _app_mgr->event = APP_MGR_EVENT_APP_LOAD;
-    _app_mgr->data = app;
-    
-    ret = k_mutex_unlock(&app_mgr_mutex);
-    if (ret < 0) {
-        LOG_ERR("Failed to unlock app manager mutex");
-        return ret;
-    }
-
-    k_sem_give(&app_mgr_sem);
-    LOG_DBG("Loaded application: %s", app->name);
-    return 0;
+    return ret;
 }
 
 int app_mgr_end_app(void)
 {
-    int ret;
-    ret = k_mutex_lock(&app_mgr_mutex, K_FOREVER);
-    if (ret < 0) {
-        LOG_ERR("Failed to lock app manager mutex");
-        return ret;
+    int ret = app_mgr_send(APP_MGR_EVENT_APP_END, NULL);
+    if (ret == 0) {
+        LOG_DBG("Ended foreground application");
     }
-
-    _app_mgr->event = APP_MGR_EVENT_APP_END;
-    _app_mgr->data = NULL;
-
-    ret = k_mutex_unlock(&app_mgr_mutex);
-    if (ret < 0) {
-        LOG_ERR("Failed to unlock app manager mutex");
-        return ret;
-    }
-
-    k_sem_give(&app_mgr_sem);
-    LOG_DBG("Ended foreground application");
-    return 0;
+    return ret;
 }
 
 static int app_mgr_init(void)
 {
-    int ret;
-    ret = k_sem_init(&app_mgr_sem, 0, 1);
-    if (ret < 0) {
-        LOG_ERR("Failed to initialize app manager semaphore");
-        return ret;
-    }
-    
-    ret = k_mutex_init(&app_mgr_mutex);
-    if (ret < 0) {
-        LOG_ERR("Failed to initialize app manager mutex");
-        return ret;
-    }
-
-    ret = app_mgr_load_app(0);
+    int ret = app_mgr_load_app(0);
     if (ret < 0) {
         LOG_ERR("Failed to load initial application");
         return ret;

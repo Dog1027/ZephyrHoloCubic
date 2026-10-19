@@ -19,4 +19,10 @@ target_sources(app PRIVATE
   src/app_thread.c
   src/file.c
   src/input.c
+  src/ui.c
+  src/jpeg.c
+  src/led.c
+  src/prefs.c
+  src/nav.c
+  src/lib/tjpgd/tjpgd.c
 )
