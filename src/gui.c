@@ -68,7 +68,7 @@ static int gui_init(void)
     // 只設定背景，第一次繪圖和開啟螢幕由 app_thread 呼叫 gui_start()
     gui_clear_screen();
 
-    LOG_DBG("GUI initialized");
+    LOG_INF("GUI initialized");
     return 0;
 }
 

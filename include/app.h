@@ -28,7 +28,7 @@ typedef struct {
     { \
         const app_t *app = &app_inst; \
         app_list_insert(app); \
-        LOG_DBG("Registered app: %s with priority %d", app->name, app->prio); \
+        LOG_INF("Registered app: %s with priority %d", app->name, app->prio); \
         return 0; \
     } \
     SYS_INIT(app_register, APPLICATION, CONFIG_APPLICATION_INIT_PRIORITY)

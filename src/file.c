@@ -23,6 +23,41 @@ bool file_exists(const char *path)
     return fs_stat(path, &entry) == 0;
 }
 
+static int lsdir(const char *path)
+{
+    struct fs_dir_t dirp;
+    static struct fs_dirent entry;
+    int count = 0;
+    int res;
+
+    fs_dir_t_init(&dirp);
+    res = fs_opendir(&dirp, path);
+    if (res) {
+        LOG_ERR("Error opening dir %s (%d)", path, res);
+        return res;
+    }
+
+    LOG_INF("Listing dir %s", path);
+    for (;;) {
+        res = fs_readdir(&dirp, &entry);
+        /* entry.name[0] == 0 means end-of-dir */
+        if (res || entry.name[0] == 0) {
+            break;
+        }
+
+        if (entry.type == FS_DIR_ENTRY_DIR) {
+            LOG_INF("[DIR ] %s", entry.name);
+        }
+        else {
+            LOG_INF("[FILE] %s (size = %zu)", entry.name, entry.size);
+        }
+        count++;
+    }
+
+    fs_closedir(&dirp);
+    return res == 0 ? count : res;
+}
+
 static int file_init(void)
 {
     int rc;
@@ -34,6 +69,13 @@ static int file_init(void)
     }
 
     LOG_INF("SD card mounted at %s", sd_mnt.mnt_point);
+
+    rc = lsdir(sd_mnt.mnt_point);
+    if (rc < 0) {
+        LOG_ERR("Failed to list directory (%d)", rc);
+        return rc;
+    }
+
     return 0;
 }
 

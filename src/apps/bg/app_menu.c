@@ -87,7 +87,7 @@ static void icon_focused_cb(lv_event_t *e)
 static void icon_clicked_cb(lv_event_t *e)
 {
     int index = (int)(intptr_t)lv_event_get_user_data(e);
-    LOG_DBG("Open app index %d", index);
+    LOG_INF("Open app index %d", index);
     app_mgr_load_app(index);
 }
 

@@ -80,7 +80,7 @@ static int app_mgr_init(void)
         return ret;
     }
 
-    LOG_DBG("Application Manager Initialized");
+    LOG_INF("Application Manager Initialized");
     return 0;
 }
 
