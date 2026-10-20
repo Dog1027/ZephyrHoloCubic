@@ -62,7 +62,7 @@ just run        # 編譯、燒錄並開啟 console
 just config     # menuconfig
 ```
 
-換板子或燒錄速度：`just board=<board> build`、`just baud=115200 flash`。
+燒錄和 console 預設用 CP2102 的固定路徑（`/dev/serial/by-id/...CP2102...`），不受 ttyUSB 編號變動影響。換板子、燒錄速度或序列埠：`just board=<board> build`、`just baud=115200 flash`、`just port=/dev/ttyUSB0 flash`。
 
 ## 操作
 

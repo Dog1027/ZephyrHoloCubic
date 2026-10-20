@@ -1,11 +1,14 @@
 # Zephyr ESP32 project — just recipes
 # https://just.systems
-# Override variables: just board=esp32_devkitc/esp32/procpu run
+# Override variables: just board=esp32_devkitc/esp32/procpu port=/dev/ttyUSB0 run
 
 set shell := ["bash", "-c"]
 
 board := "esp32_devkitc/esp32/procpu"
 baud  := "921600"
+# Fixed path of the board's CP2102: other USB serial devices (FTDI) are plugged in too,
+# and ttyUSB numbers change on replug. Override: just port=/dev/ttyUSB0 flash
+port  := "/dev/serial/by-id/usb-Silicon_Labs_CP2102_USB_to_UART_Bridge_Controller_0001-if00-port0"
 venv  := justfile_directory() / "../../.venv/bin/activate"
 python := justfile_directory() / "../../.venv/bin/python"
 
@@ -23,11 +26,11 @@ build:
 
 # Flash the connected device
 flash:
-    source {{venv}} && west flash --esp-baud-rate {{baud}}
+    source {{venv}} && west flash --esp-device {{port}} --esp-baud-rate {{baud}}
 
 # Open serial monitor
 monitor:
-    source {{venv}} && west espressif monitor
+    source {{venv}} && west espressif monitor -p {{port}}
 
 # Build and flash
 upload: build flash
