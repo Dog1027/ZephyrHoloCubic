@@ -45,3 +45,8 @@ gif2jpg gif out size="240x240" quality="80" bg="000000":
 # Convert all images in a folder to baseline JPEGs for the Photos app, e.g. just img2jpg ~/Pictures out/photo
 img2jpg in out size="240x240" quality="85" fit="cover":
     {{python}} -I {{justfile_directory()}}/tools/img2jpg.py "{{in}}" "{{out}}" --size {{size}} --quality {{quality}} --fit {{fit}}
+
+# Reset the board, open and close every app over the shell, report errors and stack usage
+# (close any serial monitor first)
+test:
+    {{python}} -I {{justfile_directory()}}/tools/serial_test.py {{port}} {{justfile_directory()}}/build/serial_test.log

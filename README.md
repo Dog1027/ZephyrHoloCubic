@@ -60,6 +60,7 @@ just monitor    # 序列埠 console（Ctrl+] 離開）
 just upload     # 編譯並燒錄
 just run        # 編譯、燒錄並開啟 console
 just config     # menuconfig
+just test       # 透過序列埠自動開關每個 app，回報錯誤和 stack 用量（先關掉 monitor）
 ```
 
 燒錄和 console 預設用 CP2102 的固定路徑（`/dev/serial/by-id/...CP2102...`），不受 ttyUSB 編號變動影響。換板子、燒錄速度或序列埠：`just board=<board> build`、`just baud=115200 flash`、`just port=/dev/ttyUSB0 flash`。

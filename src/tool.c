@@ -206,9 +206,13 @@ static int _imu_get(const struct shell *shell, size_t argc, char **argv)
         return -EIO;
     }
 
-    shell_print(shell, "Accel X: %d.%06d m/s^2", accel[0].val1, accel[0].val2);
-    shell_print(shell, "Accel Y: %d.%06d m/s^2", accel[1].val1, accel[1].val2);
-    shell_print(shell, "Accel Z: %d.%06d m/s^2", accel[2].val1, accel[2].val2);
+    // val1 / val2 的正負號各自獨立 (-0.12 是 val1 = 0, val2 = -124499)，換成毫單位再印
+    static const char axis[] = {'X', 'Y', 'Z'};
+    for (int i = 0; i < 3; i++) {
+        int32_t milli = (int32_t)sensor_value_to_milli(&accel[i]);
+        shell_print(shell, "Accel %c: %s%d.%03d m/s^2", axis[i], milli < 0 ? "-" : "",
+                    abs(milli) / 1000, abs(milli) % 1000);
+    }
 
     return 0;
 }
