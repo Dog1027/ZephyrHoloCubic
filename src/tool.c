@@ -78,6 +78,12 @@ static int _ui_back(const struct shell *shell, size_t argc, char **argv)
     return nav_send(NAV_BACK);
 }
 
+// 跟敲一下裝置完全相同，方便測試或不想真的敲的時候用
+static int _ui_tap(const struct shell *shell, size_t argc, char **argv)
+{
+    return nav_send(NAV_TAP);
+}
+
 #define REMOTE_ESC_TIMEOUT_MS 50
 
 // 遙控模式的跳脫序列狀態 0: 一般, 1: 收到 ESC, 2: 收到 ESC [ (方向鍵)
@@ -135,13 +141,17 @@ static void remote_bypass(const struct shell *shell, uint8_t *data, size_t len)
         case 'd':
             nav_send(NAV_NEXT);
             break;
+        case 'e':
+            nav_send(NAV_TAP);
+            break;
+        case 'q':
         case 'b':
         case 0x7f:
         case 0x08:
             nav_send(NAV_BACK);
             break;
-        case 'q':
-        case 0x03:
+        case 0x11:  // Ctrl+Q
+        case 0x03:  // Ctrl+C
             atomic_set(&esc_state, 0);
             shell_set_bypass(shell, NULL);
             shell_print(shell, "Remote mode off");
@@ -159,7 +169,7 @@ static void remote_bypass(const struct shell *shell, uint8_t *data, size_t len)
 static int _ui_remote(const struct shell *shell, size_t argc, char **argv)
 {
     shell_print(shell, "Remote mode: arrows or w/a/s/d move, Enter/Space = OK, "
-                       "Esc/Backspace/b = back, q or Ctrl+C to quit");
+                       "e = tap, q/Esc/Backspace/b = back to menu, Ctrl+Q or Ctrl+C to quit");
     shell_set_bypass(shell, remote_bypass);
     return 0;
 }
@@ -169,6 +179,7 @@ SHELL_STATIC_SUBCMD_SET_CREATE(sub_ui,
     SHELL_CMD_ARG(prev, NULL, "Highlight the previous item", _ui_prev, 1, 0),
     SHELL_CMD_ARG(ok, NULL, "Select the highlighted item", _ui_ok, 1, 0),
     SHELL_CMD_ARG(back, NULL, "Close the foreground app", _ui_back, 1, 0),
+    SHELL_CMD_ARG(tap, NULL, "Same as tapping the cube", _ui_tap, 1, 0),
     SHELL_CMD_ARG(remote, NULL, "Control with single key presses", _ui_remote, 1, 0),
     SHELL_SUBCMD_SET_END);
 

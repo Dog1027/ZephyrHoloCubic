@@ -26,7 +26,7 @@ void nav_set_handler(nav_handler_t new_handler)
     handler = new_handler;
 }
 
-static void nav_apply(nav_cmd_t cmd)
+static void nav_apply(nav_cmd_t cmd, bool in_app)
 {
     lv_group_t *g = lv_group_get_default();
 
@@ -36,6 +36,10 @@ static void nav_apply(nav_cmd_t cmd)
     }
 
     if (handler != NULL && handler(cmd)) {
+        return;
+    }
+    // 敲擊容易誤觸，在 Menu 不移動選擇，只在 app 裡當成「下一個」
+    if (cmd == NAV_TAP && !in_app) {
         return;
     }
     if (g == NULL) {
@@ -62,12 +66,12 @@ static void nav_apply(nav_cmd_t cmd)
     }
 }
 
-void nav_process(void)
+void nav_process(bool in_app)
 {
     nav_cmd_t cmd;
 
     while (k_msgq_get(&nav_q, &cmd, K_NO_WAIT) == 0) {
         LOG_DBG("Nav command %d", cmd);
-        nav_apply(cmd);
+        nav_apply(cmd, in_app);
     }
 }

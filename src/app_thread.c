@@ -99,7 +99,7 @@ static void app_thread_entry(void *arg1, void *arg2, void *arg3)
         }
 
         // UART 指令和敲擊都從這裡進來，在 LVGL thread 裡套用
-        nav_process();
+        nav_process(fg_app != NULL);
 
         ret = app_mgr_check(&event, &data);
         if (ret == 0) {

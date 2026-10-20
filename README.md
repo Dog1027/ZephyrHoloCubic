@@ -76,6 +76,7 @@ app close             關閉 app，回到 Menu
 ui next / ui prev     下一個 / 上一個
 ui ok                 選取
 ui back               返回 Menu
+ui tap                等同敲一下裝置
 ui remote             遙控模式
 
 tool imu_get          讀取加速度
@@ -88,10 +89,11 @@ tool led_set R G B    直接設定 LED 顏色（0-255）
 |---|---|
 | 方向鍵，或 `w` `a` `s` `d` | 上一個 / 下一個 |
 | `Enter` 或空白鍵 | 選取 |
-| `Esc`、`Backspace` 或 `b` | 返回 Menu |
-| `q` 或 `Ctrl+C` | 離開遙控模式 |
+| `e` | 等同敲一下裝置 |
+| `q`、`Esc`、`Backspace` 或 `b` | 關閉 app，返回 Menu |
+| `Ctrl+Q` 或 `Ctrl+C` | 離開遙控模式 |
 
-**敲一下裝置**預設等於 `ui next`。部分 app 會改成更合適的用途：Photos 換下一張、Dice 擲骰、Level 設零點、Timer 在計時中暫停或繼續。
+**敲一下裝置**在 app 裡預設等於 `ui next`，在 Menu 不會有反應（避免誤觸換掉選擇）。部分 app 會改成更合適的用途：Photos 換下一張、Dice 擲骰、Level 設零點、Timer 在計時中暫停或繼續。
 
 ## 準備 SD 卡內容
 
