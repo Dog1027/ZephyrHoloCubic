@@ -4,19 +4,6 @@
 
 static sys_slist_t app_list = SYS_SLIST_STATIC_INIT(&app_list);
 
-int app_list_list(void)
-{
-    sys_snode_t *node = sys_slist_peek_head(&app_list);
-    int i = 0;
-    while (node != NULL) {
-        app_node_t *app_node = CONTAINER_OF(node, app_node_t, node);
-        printk("App Index: %d, Name: %s, Priority: %d\n", i, app_node->app->name, app_node->app->prio);
-        node = sys_slist_peek_next(node);
-        i++;
-    }
-    return 0;
-}
-
 int app_list_insert(const app_t *app)
 {
     if (app == NULL) {

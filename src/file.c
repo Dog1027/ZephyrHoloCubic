@@ -1,7 +1,10 @@
 #include <zephyr/kernel.h>
 #include <zephyr/fs/fs.h>
+#include <zephyr/logging/log.h>
 #include <ff.h>
 #include "file.h"
+
+LOG_MODULE_REGISTER(file, CONFIG_GUI_LOG_LEVEL);
 
 #define MKFS_FS_TYPE FS_FATFS
 
@@ -20,68 +23,17 @@ bool file_exists(const char *path)
     return fs_stat(path, &entry) == 0;
 }
 
-static int lsdir(const char* path)
-{
-    int res;
-    struct fs_dir_t dirp;
-    static struct fs_dirent entry;
-    int count = 0;
-
-    fs_dir_t_init(&dirp);
-
-    /* Verify fs_opendir() */
-    res = fs_opendir(&dirp, path);
-    if (res) {
-        printk("Error opening dir %s [%d]\n", path, res);
-        return res;
-    }
-
-    printk("\nListing dir %s ...\n", path);
-    for (;;) {
-        /* Verify fs_readdir() */
-        res = fs_readdir(&dirp, &entry);
-
-        /* entry.name[0] == 0 means end-of-dir */
-        if (res || entry.name[0] == 0) {
-            break;
-        }
-
-        if (entry.type == FS_DIR_ENTRY_DIR) {
-            printk("[DIR ] %s\n", entry.name);
-        }
-        else {
-            printk("[FILE] %s (size = %zu)\n", entry.name, entry.size);
-        }
-        count++;
-    }
-
-    /* Verify fs_closedir() */
-    fs_closedir(&dirp);
-    if (res == 0) {
-        res = count;
-    }
-
-    return res;
-}
-
 static int file_init(void)
 {
     int rc;
 
     rc = fs_mount(&sd_mnt);
     if (rc < 0) {
-        printk("Failed to mount SD card (%d)\n", rc);
+        LOG_ERR("Failed to mount SD card (%d)", rc);
         return rc;
     }
 
-    printk("SD card mounted at %s\n", sd_mnt.mnt_point);
-
-    rc = lsdir("/0:");
-    if (rc < 0) {
-        printk("Failed to list directory (%d)\n", rc);
-        return rc;
-    }
-
+    LOG_INF("SD card mounted at %s", sd_mnt.mnt_point);
     return 0;
 }
 

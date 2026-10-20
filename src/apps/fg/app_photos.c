@@ -122,7 +122,7 @@ static void photo_show(int index, int step)
         }
         if (ret == 0) {
             photo_index = index;
-            LOG_INF("Photo %d/%d: %s", index + 1, photo_count, path);
+            LOG_DBG("Photo %d/%d: %s", index + 1, photo_count, path);
             return;
         }
         LOG_ERR("Skip photo %d (%d)", index, ret);
@@ -170,7 +170,7 @@ static void app_photos_init(void *scr)
     start_ms = k_uptime_get();
 
     photo_count = photos_load();
-    LOG_INF("%d photos in %s", photo_count, PHOTO_ROOT);
+    LOG_DBG("%d photos in %s", photo_count, PHOTO_ROOT);
 
     if (photo_count == 0) {
         ui_title(scr, "Photos");
